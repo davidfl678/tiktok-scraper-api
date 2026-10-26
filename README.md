@@ -1,23 +1,23 @@
 <p align="center">
-  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/your-username/youtube-scraper-api">
+  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/your-username/tiktok-scraper-api">
     <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare Workers" />
   </a>
 </p>
 
 <p align="center">
-  <img src="https://www.gstatic.com/youtube/img/promos/growth/YTP_logo_social_1200x630.png?days_since_epoch=20752" width="320" alt="YouTube Logo" />
+  <img src="https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg" width="160" alt="TikTok Logo" />
 </p>
 
-<h1 align="center">🎬 YouTube Scraper & Downloader API</h1>
+<h1 align="center">🎵 TikTok Scraper & Media Downloader API</h1>
 
 <p align="center">
-  <strong>High-performance, serverless YouTube metadata scraper, multi-quality video downloader, and MP3 audio converter API designed for Cloudflare Workers.</strong>
+  <strong>High-performance, serverless TikTok video (HD No-Watermark), MP3 audio, and photo slideshow scraper and downloader API designed for Cloudflare Workers.</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Cloudflare_Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
   <img src="https://img.shields.io/badge/Runtime-V8_Worker_Isolate-3178C6?style=for-the-badge&logo=javascript&logoColor=white" alt="V8 Engine" />
-  <img src="https://img.shields.io/badge/Max_Download-650_MB_Cap-E50914?style=for-the-badge" alt="650 MB Limit" />
+  <img src="https://img.shields.io/badge/Quality-HD_No_Watermark-00F2FE?style=for-the-badge" alt="HD No Watermark" />
   <img src="https://img.shields.io/badge/CORS-Universal_(*)-success?style=for-the-badge" alt="CORS" />
   <img src="https://img.shields.io/badge/Dependencies-Zero_npm-black?style=for-the-badge" alt="Zero Dependencies" />
 </p>
@@ -28,19 +28,24 @@
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
-- [Architecture & Engine Sources](#-architecture--engine-sources)
-- [650 MB Download Limit & Rate Protection](#-650-mb-download-limit--rate-protection)
-- [Raw File Size Reporting](#-raw-file-size-reporting)
-- [Audio & Video Quality Specifications](#-audio--video-quality-specifications)
+- [Architecture & Dual-Engine Failover](#-architecture--dual-engine-failover)
+- [Handling TikTok Quirks & Bot Protections](#-handling-tiktok-quirks--bot-protections)
 - [API Endpoints Reference](#-api-endpoints-reference)
   - [1. Service Health & Status](#1-service-health--status)
-  - [2. Scrape Video & Audio Metadata](#2-scrape-video--audio-metadata)
-  - [3. Direct Download with Custom Filename](#3-direct-download-with-custom-filename)
-  - [4. Dynamic Media Stream Proxy](#4-dynamic-media-stream-proxy)
+  - [2. Scrape TikTok Media (Main Endpoint)](#2-scrape-tiktok-media-main-endpoint)
+  - [3. Direct Download Proxy (Bypasses 403 Forbidden)](#3-direct-download-proxy-bypasses-403-forbidden)
+  - [4. Dynamic Media Stream Proxy (Range Seeking)](#4-dynamic-media-stream-proxy-range-seeking)
+- [JSON Response Schemas](#-json-response-schemas)
+  - [Video Post Schema](#video-post-schema)
+  - [Photo Slideshow Post Schema](#photo-slideshow-post-schema)
 - [Deployment Guide](#-deployment-guide)
   - [Option 1: One-Click Deploy Button](#option-1-one-click-deploy-button)
   - [Option 2: Cloudflare Dashboard (Web UI)](#option-2-cloudflare-dashboard-web-ui)
   - [Option 3: Wrangler CLI](#option-3-wrangler-cli)
+- [Client Integration Examples](#-client-integration-examples)
+  - [cURL](#curl)
+  - [JavaScript / TypeScript (Browser & Node.js)](#javascript--typescript)
+  - [Python](#python)
 - [Configuration (`wrangler.toml`)](#-configuration-wranglertoml)
 - [License & Disclaimer](#-license--disclaimer)
 
@@ -48,24 +53,26 @@
 
 ## 🌟 Overview
 
-The **YouTube Scraper & Downloader API** is a pure serverless REST API that extracts complete YouTube video metadata, direct multi-resolution MP4 video streams (`144p` up to `2160p` 4K), and high-bitrate MP3 audio streams. It does not require any browser binaries (like Puppeteer or Playwright), operates with zero npm dependencies, and runs directly on Cloudflare's global edge network across 300+ locations.
+The **TikTok Scraper & Media Downloader API** is a lightweight, edge-native REST API that scrapes TikTok video posts, photo slideshows, author profiles, and background music without watermarks. Built purely with standard V8 Web APIs (`fetch`, `Request`, `Response`, `URLSearchParams`, `Headers`), it executes with near-zero cold starts (< 5ms) on Cloudflare's global edge network across 300+ locations.
 
 ---
 
 ## ✨ Key Features
 
-- **Dual Primary Engine Integration:** Aggregates streams from `yt-dl.officialhectormanuel.workers.dev` and detailed bitrate analysis from `ytmp3.biz.pl`.
-- **Full Bitrate MP3 Audio Extraction:** Provides instant calculations and direct downloads for Original, 320 Kbps, 256 Kbps, 192 Kbps, 128 Kbps, and 64 Kbps MP3 streams.
-- **Multi-Resolution Video Downloads:** Supports 144p, 240p, 360p, 480p, 720p HD, 1080p Full HD, 1440p 2K, and 2160p 4K.
-- **Raw File Size Data:** Returns both raw integer bytes (`size`) and human-readable formatted sizes (`size_formatted`) for every video quality and audio bitrate.
-- **650 MB Download Protection:** Enforces a strict `650 MB` limit on proxy downloads to prevent Worker memory exhaustion and timeouts.
-- **Direct Edge Streaming:** Built-in `/api/stream` endpoint supports `Accept-Ranges: bytes` and `206 Partial Content` for HTML5 video/audio players and seek operations.
-- **Custom Filename Proxy:** Download links trigger `Content-Disposition: attachment` with sanitized video title filenames.
-- **Universal CORS:** Standard CORS headers enabled on all responses for seamless frontend app and bot integration.
+- **No-Watermark HD MP4 Video:** Extracts both standard and HD (`hdplay`) no-watermark MP4 video stream URLs.
+- **MP3 Audio Extraction:** Extracts background soundtrack streams with proper artist, title, and cover artwork.
+- **Photo / Carousel Posts (Slideshows):** Full multi-image extraction supporting high-resolution image arrays for TikTok slideshows.
+- **Bypasses 403 Forbidden Hotlink Blocks:** Built-in `/api/download` proxy injects official `Referer: https://www.tiktok.com/` and mobile `User-Agent` headers to guarantee non-expiring direct downloads.
+- **Inline Seeking Support (`/api/stream`):** Implements `Accept-Ranges: bytes` and `206 Partial Content` for HTML5 video players and seek controls.
+- **Shortlink Expansion:** Automatically resolves mobile app shortlinks (`vt.tiktok.com`, `vm.tiktok.com`, `tiktok.com/t/...`) to their canonical post URLs.
+- **Dual-Engine Redundancy:** Automatic failover between TikWM and TikTok Web SSR manifest extraction to ensure high uptime.
+- **Rich Engagement Metrics:** View counts, like counts, comments, shares, downloads, and collection counts.
+- **Universal CORS:** Standard CORS headers enabled on all responses for easy client-side frontend and bot integration.
+- **Zero Runtime Dependencies:** Requires zero external npm packages.
 
 ---
 
-## 🏗 Architecture & Engine Sources
+## 🏗 Architecture & Dual-Engine Failover
 
 ```text
                                 Client Request
@@ -76,77 +83,33 @@ The **YouTube Scraper & Downloader API** is a pure serverless REST API that extr
   (Extract Metadata)                                    (Dynamic Streaming & Proxy)
          │                                                         │
          ▼                                                         ▼
-  Multi-Engine Parallel Query:                            Content-Length Inspection:
-  ├── Engine 1: yt-dl.officialhectormanuel.workers.dev   ├── If Size > 650 MB -> HTTP 413
-  ├── Engine 2: ytmp3.biz.pl & v2.y2jar.cc                └── If Size <= 650 MB -> Stream directly
-  ├── Engine 3: p.savenow.to (Standby Fallback)                     │
-  └── Fallback: Innertube Android API                               ▼
-                                                        - 206 Partial Content (Seeking)
-                                                        - Content-Disposition: attachment
-                                                        - Correct Audio/Video MIME type
+  Shortlink Resolver:                                     Proxy Stream Engine:
+  Expands vt.tiktok.com / vm.tiktok.com                   ├── Injects Referer: https://www.tiktok.com/
+         │                                                ├── Injects Modern Mobile User-Agent
+         ▼                                                └── Streams bytes directly to client
+  Dual-Engine Failover:                                            │
+  ├── Engine 1: TikWM API (HD No-Watermark MP4 & MP3)              ▼
+  └── Engine 2: TikTok Web SSR Hydration JSON             - Bypasses 403 Forbidden
+                                                          - Content-Disposition: attachment
+                                                          - Supports 206 Partial Content (Seeking)
 ```
 
-| Engine | Host | Purpose | Status |
+| Engine | Source | Bot Defense Status | Primary Media Formats |
 |:---|:---|:---|:---|
-| **Engine 1** | `yt-dl.officialhectormanuel.workers.dev` | Multi-quality MP4 video streams (`144p` - `2160p`) & direct MP3 stream | Primary |
-| **Engine 2** | `ytmp3.biz.pl` (`v2.y2jar.cc`) | Metadata parsing, video sizes & MP3 bitrate matrix (`64k` - `320k`) | Primary |
-| **Engine 3** | `p.savenow.to` | Progressive fallback converter for MP4/MP3 | Standby |
-| **Fallback** | `youtubei.googleapis.com` | Official Android Innertube client fallback | Standby |
+| **Engine 1** | `TikWM` | Unrestricted Edge API | HD No-Watermark MP4, Standard MP4, Watermarked MP4, MP3 Audio, Photo Slideshows |
+| **Engine 2** | `TikTok Web SSR` | Direct Canonical Extraction | Standard No-Watermark MP4, MP3 Audio, High-Res Image Array |
+| **Proxy Engine** | Cloudflare Edge Worker | Global 300+ Locations | Injects required TikTok CDN headers to bypass 403 Forbidden hotlink blocks |
 
 ---
 
-## 🛡 650 MB Download Limit & Rate Protection
+## 🛡 Handling TikTok Quirks & Bot Protections
 
-To guarantee stable streaming, protect Worker memory, and adhere to Cloudflare Worker limits, the API enforces a strict **650 MB (`681,574,400` bytes)** maximum download cap:
-
-1. **Header-Level Rejection:** If upstream `Content-Length` exceeds `681,574,400` bytes, the Worker immediately terminates the connection and returns **HTTP 413 (Payload Too Large)** without consuming Worker bandwidth.
-2. **Chunk-Level Stream Guard:** For streams without a `Content-Length` header or chunked transfers, an internal `TransformStream` counts bytes transmitted in real-time. If the stream reaches 650 MB, it safely cuts the connection.
-3. **Scrape Response Flagging:** Every video and audio item in `/api/scrape` includes `download_allowed: true/false`, indicating whether the format fits within the 650 MB limit.
-
-### HTTP 413 Error Response Example:
-```json
-{
-  "status": "error",
-  "code": 413,
-  "message": "File size exceeds the 650 MB download limit",
-  "file_size": 734003200,
-  "file_size_formatted": "700 MB",
-  "max_download_size": 681574400,
-  "max_download_size_formatted": "650 MB"
-}
-```
-
----
-
-## 📊 Raw File Size Reporting
-
-Every media format exposes its exact byte count alongside its human-readable representation:
-
-- `size`: Unsigned integer representing exact bytes (e.g. `7170832`)
-- `size_formatted`: Formatted string (e.g. `"6.84 MB"`, `"554.69 KB"`)
-- `download_allowed`: Boolean indicating whether file size is `<= 650 MB`
-
----
-
-## 🎧 Audio & Video Quality Specifications
-
-### Audio Bitrates (MP3)
-- **MP3 Original:** Exact source audio stream size (approx. 128-160 Kbps AAC/Opus transcode)
-- **MP3 320 Kbps:** Ultra high quality studio audio
-- **MP3 256 Kbps:** High quality audio
-- **MP3 192 Kbps:** Standard high fidelity
-- **MP3 128 Kbps:** Standard mobile quality
-- **MP3 64 Kbps:** Data saver / low bandwidth
-
-### Video Resolutions (MP4)
-- **2160p (4K UHD):** 3840x2160
-- **1440p (2K QHD):** 2560x1440
-- **1080p (Full HD):** 1920x1080 (up to 60fps)
-- **720p (HD):** 1280x720
-- **480p (SD):** 854x480
-- **360p:** 640x360
-- **240p:** 426x240
-- **144p:** 256x144
+1. **Shortened Mobile App Links (`vt.tiktok.com`, `vm.tiktok.com`, `/t/`):**
+   Mobile app share links are HTTP 301/302 redirects. The worker follows redirects automatically via `resolveRedirects()` before extraction.
+2. **CDN 403 Forbidden Errors:**
+   TikTok CDN hosts (`*.tiktokcdn.com`, `*.tiktokv.com`) block direct browser downloads with HTTP 403 Forbidden if the `Referer` header is missing. The `/api/download` proxy adds the required headers automatically.
+3. **Photo Slideshows:**
+   Posts containing images rather than videos are automatically detected (`type: "image"`), providing an array of high-resolution image URLs in `media.images`.
 
 ---
 
@@ -158,7 +121,7 @@ Base URL: `https://<your-worker-name>.<your-subdomain>.workers.dev`
 
 ### 1. Service Health & Status
 
-Returns server status, engine statuses, and download limit configurations.
+Returns server status and endpoint schema.
 
 - **Method:** `GET`
 - **Path:** `/` or `/api` or `/health`
@@ -176,184 +139,43 @@ curl "https://your-worker.workers.dev/health"
 
 ---
 
-### 2. Scrape Video & Audio Metadata
+### 2. Scrape TikTok Media (Main Endpoint)
 
-Extracts complete video metadata, stream links, and size information across all available resolutions.
+Extracts video/image URLs, author profile details, engagement stats, and audio tracks.
 
 - **Method:** `GET` or `POST`
 - **Path:** `/api/scrape` *(Aliases: `/scrape`, `/api/video`, `/api/info`)*
 
-#### Query Parameters:
+#### Query Parameters / JSON Body:
 
 | Parameter | Type | Required | Description |
 |:---|:---|:---|:---|
-| `url` / `id` | string | Yes | YouTube video URL (watch/shorts/youtu.be) or 11-char video ID |
-| `quality` | string | No | Preferred video resolution: `1080`, `720`, `480`, `360` (Default: `1080`) |
+| `url` / `id` | string | Yes | TikTok video/photo URL, mobile shortlink (`vt.tiktok.com`), or 19-digit video ID |
 
-#### Example Request:
+#### Example Requests:
 
+**GET Request:**
 ```bash
-curl "https://your-worker.workers.dev/api/scrape?url=https://www.youtube.com/watch?v=HE0LXtwiZd8&quality=1080"
+curl "https://your-worker.workers.dev/api/scrape?url=https://www.tiktok.com/@tiktok/video/7106594312292453675"
 ```
 
-#### JSON Response Schema:
+**Shortlink GET Request:**
+```bash
+curl "https://your-worker.workers.dev/api/scrape?url=https://vt.tiktok.com/ZS2xyz123/"
+```
 
-```json
-{
-  "status": "success",
-  "code": 200,
-  "data": {
-    "engine": "engine-1 (edge-ytdl)",
-    "id": "HE0LXtwiZd8",
-    "title": "COSMIC TECLAS (Slowed)",
-    "channel": {
-      "id": "",
-      "name": "DJ Raulipues - Topic"
-    },
-    "duration": 71,
-    "views": 0,
-    "is_live": false,
-    "thumbnails": [
-      {
-        "url": "https://i.ytimg.com/vi/HE0LXtwiZd8/maxresdefault.jpg",
-        "width": 480,
-        "height": 360
-      }
-    ],
-    "max_download_size": 681574400,
-    "max_download_size_formatted": "650 MB",
-    "requested_quality": "1080p",
-    "available_qualities": [
-      "1080",
-      "720",
-      "480",
-      "360",
-      "240",
-      "144",
-      "mp3"
-    ],
-    "sources": {
-      "edge_downloader": {
-        "status": "active",
-        "host": "yt-dl.officialhectormanuel.workers.dev",
-        "title": "COSMIC TECLAS (Slowed)",
-        "audio": "https://yt-dl.officialhectormanuel.workers.dev/stream?id=HE0LXtwiZd8&format=mp3&key=...",
-        "audio_size": 1162066,
-        "audio_size_formatted": "1.11 MB",
-        "videos": {
-          "144p": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-          "240p": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-          "360p": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-          "480p": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-          "720p": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-          "1080p": "https://yt-dl.officialhectormanuel.workers.dev/stream?..."
-        }
-      },
-      "ytmp3_biz_pl": {
-        "status": "active",
-        "host": "ytmp3.biz.pl",
-        "title": "DJ Raulipues, Akrai & -Prey - COSMIC TECLAS (Slowed)",
-        "author": "DJ Raulipues - Topic",
-        "duration": 71,
-        "audio": {
-          "original": {
-            "quality": "original",
-            "size": 1162066,
-            "size_formatted": "1.11 MB",
-            "download_allowed": true
-          },
-          "bitrates": [
-            {
-              "label": "MP3 Original",
-              "quality": "original",
-              "bitrate": "original",
-              "size": 1162066,
-              "size_formatted": "1.11 MB",
-              "download_allowed": true,
-              "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio&quality=original",
-              "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio&quality=original"
-            },
-            {
-              "label": "MP3 320 Kbps",
-              "quality": "320kbps",
-              "bitrate": 320,
-              "size": 2840000,
-              "size_formatted": "2.71 MB",
-              "download_allowed": true,
-              "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio&quality=320",
-              "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio&quality=320"
-            }
-          ]
-        },
-        "videos": [
-          { "quality": "1080p", "size": 7170832, "size_formatted": "6.84 MB", "download_allowed": true },
-          { "quality": "720p", "size": 4264470, "size_formatted": "4.07 MB", "download_allowed": true },
-          { "quality": "480p", "size": 2787791, "size_formatted": "2.66 MB", "download_allowed": true }
-        ]
-      }
-    },
-    "media": {
-      "video": {
-        "quality": "1080p",
-        "size": 7170832,
-        "size_formatted": "6.84 MB",
-        "download_allowed": true,
-        "url": "https://yt-dl.officialhectormanuel.workers.dev/stream?id=HE0LXtwiZd8&format=1080&...",
-        "qualities": [
-          {
-            "quality": "1080p",
-            "size": 7170832,
-            "size_formatted": "6.84 MB",
-            "download_allowed": true,
-            "url": "https://yt-dl.officialhectormanuel.workers.dev/stream?...",
-            "download_url": "https://your-worker.workers.dev/api/download?url=...",
-            "stream_url": "https://your-worker.workers.dev/api/stream?url=..."
-          }
-        ],
-        "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&quality=1080&type=video",
-        "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&quality=1080&type=video"
-      },
-      "audio": {
-        "format": "mp3",
-        "quality": "original",
-        "size": 1162066,
-        "size_formatted": "1.11 MB",
-        "download_allowed": true,
-        "url": "https://yt-dl.officialhectormanuel.workers.dev/stream?id=HE0LXtwiZd8&format=mp3&...",
-        "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio",
-        "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio",
-        "bitrates": [
-          {
-            "label": "MP3 Original",
-            "quality": "original",
-            "size": 1162066,
-            "size_formatted": "1.11 MB",
-            "download_allowed": true,
-            "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio&quality=original",
-            "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio&quality=original"
-          },
-          {
-            "label": "MP3 320 Kbps",
-            "quality": "320kbps",
-            "bitrate": 320,
-            "size": 2840000,
-            "size_formatted": "2.71 MB",
-            "download_allowed": true,
-            "download_url": "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio&quality=320",
-            "stream_url": "https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio&quality=320"
-          }
-        ]
-      }
-    }
-  }
-}
+**POST Request (JSON):**
+```bash
+curl -X POST "https://your-worker.workers.dev/api/scrape" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.tiktok.com/@tiktok/video/7106594312292453675"}'
 ```
 
 ---
 
-### 3. Direct Download with Custom Filename
+### 3. Direct Download Proxy (Bypasses 403 Forbidden)
 
-Triggers direct browser download (`Content-Disposition: attachment`). Resolves the stream dynamically and enforces the 650 MB limit.
+Downloads media as a local file with `Content-Disposition: attachment`. Bypasses TikTok hotlink protection.
 
 - **Method:** `GET`
 - **Path:** `/api/download` *(Alias: `/download`)*
@@ -362,36 +184,126 @@ Triggers direct browser download (`Content-Disposition: attachment`). Resolves t
 
 | Parameter | Type | Required | Description |
 |:---|:---|:---|:---|
-| `id` / `url` | string | Yes | YouTube video ID, watch URL, or direct stream URL |
-| `quality` | string | No | Desired resolution (`1080`, `720`, `480`, `360`) or bitrate (`320`, `256`, `192`, `128`, `64`) |
-| `type` | string | No | Media type: `video` (default) or `audio` |
-| `filename` | string | No | Custom file name (e.g. `Song.mp3` or `Video.mp4`) |
+| `url` | string | Yes | Direct media URL returned by `/api/scrape` |
+| `filename` | string | No | Custom output filename (Default: `tiktok_media.mp4`) |
 
 #### Examples:
 
 ```bash
-# Download 1080p MP4 Video
-curl -L -O "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&quality=1080&type=video"
+# Download No-Watermark MP4 Video
+curl -L -O "https://your-worker.workers.dev/api/download?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmedia%2Fhd%2F...&filename=my_tiktok_video.mp4"
 
-# Download 320 Kbps MP3 Audio
-curl -L -O "https://your-worker.workers.dev/api/download?id=HE0LXtwiZd8&type=audio&quality=320"
+# Download MP3 Background Track
+curl -L -O "https://your-worker.workers.dev/api/download?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmusic%2F...&filename=my_tiktok_audio.mp3"
 ```
 
 ---
 
-### 4. Dynamic Media Stream Proxy
+### 4. Dynamic Media Stream Proxy (Range Seeking)
 
-Streams video or audio with `Content-Disposition: inline` and full `Accept-Ranges: bytes` support. Ideal for HTML5 `<video>` or `<audio>` player embedding, mobile apps, and seeking.
+Streams media with `Content-Disposition: inline` and full `Accept-Ranges: bytes` support. Ideal for HTML5 `<video>` or `<audio>` player embedding, mobile apps, and seeking.
 
 - **Method:** `GET`
 - **Path:** `/api/stream` *(Alias: `/stream`)*
 
 ```html
 <!-- HTML5 Video Embedding with Seeking -->
-<video controls width="100%" height="auto" src="https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&quality=720&type=video"></video>
+<video controls width="100%" height="auto" src="https://your-worker.workers.dev/api/stream?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmedia%2Fhd%2F..."></video>
 
 <!-- HTML5 Audio Embedding -->
-<audio controls src="https://your-worker.workers.dev/api/stream?id=HE0LXtwiZd8&type=audio"></audio>
+<audio controls src="https://your-worker.workers.dev/api/stream?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmusic%2F..."></audio>
+```
+
+---
+
+## 📋 JSON Response Schemas
+
+### Video Post Schema
+
+```json
+{
+  "status": "success",
+  "code": 200,
+  "data": {
+    "engine": "tikwm",
+    "id": "7106594312292453675",
+    "title": "Welcome to TikTok! Check out our new features.",
+    "type": "video",
+    "duration": 34,
+    "region": "US",
+    "created_at": "2024-06-07T18:30:00.000Z",
+    "author": {
+      "id": "107955",
+      "unique_id": "tiktok",
+      "nickname": "TikTok",
+      "avatar": "https://p16-sign-va.tiktokcdn.com/..."
+    },
+    "stats": {
+      "views": 15420000,
+      "likes": 842000,
+      "comments": 12400,
+      "shares": 95400,
+      "downloads": 45100,
+      "collects": 32100
+    },
+    "media": {
+      "video": {
+        "no_watermark": "https://www.tikwm.com/video/media/play/...",
+        "no_watermark_hd": "https://www.tikwm.com/video/media/hd/...",
+        "watermark": "https://www.tikwm.com/video/media/wm/...",
+        "cover": "https://p16-sign-va.tiktokcdn.com/...",
+        "dynamic_cover": "https://p16-sign-va.tiktokcdn.com/...",
+        "download_url": "https://your-worker.workers.dev/api/download?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmedia%2Fhd%2F...&filename=tiktok_7106594312292453675.mp4",
+        "stream_url": "https://your-worker.workers.dev/api/stream?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmedia%2Fhd%2F..."
+      },
+      "music": {
+        "id": "7106594312292453676",
+        "title": "original sound - TikTok",
+        "author": "TikTok",
+        "url": "https://www.tikwm.com/video/music/...",
+        "duration": 34,
+        "cover": "https://p16-sign-va.tiktokcdn.com/...",
+        "download_url": "https://your-worker.workers.dev/api/download?url=https%3A%2F%2Fwww.tikwm.com%2Fvideo%2Fmusic%2F...&filename=tiktok_music_7106594312292453675.mp3"
+      },
+      "images": []
+    }
+  }
+}
+```
+
+---
+
+### Photo Slideshow Post Schema
+
+When a post contains multiple photos, `type` is `"image"` and `media.images` contains the full array of high-resolution images:
+
+```json
+{
+  "status": "success",
+  "code": 200,
+  "data": {
+    "engine": "tikwm",
+    "id": "7234567890123456789",
+    "title": "My vacation photo dump 📸",
+    "type": "image",
+    "duration": 0,
+    "media": {
+      "video": null,
+      "music": {
+        "id": "7234567890123456790",
+        "title": "Summer Vibes",
+        "author": "Artist",
+        "url": "https://www.tikwm.com/video/music/...",
+        "download_url": "https://your-worker.workers.dev/api/download?url=..."
+      },
+      "images": [
+        "https://p16-sign-va.tiktokcdn.com/tos-maliva-p-0068/image1.jpeg",
+        "https://p16-sign-va.tiktokcdn.com/tos-maliva-p-0068/image2.jpeg",
+        "https://p16-sign-va.tiktokcdn.com/tos-maliva-p-0068/image3.jpeg"
+      ]
+    }
+  }
+}
 ```
 
 ---
@@ -402,7 +314,7 @@ Streams video or audio with `Content-Disposition: inline` and full `Accept-Range
 
 Click the banner below to fork and deploy directly to your Cloudflare account in seconds:
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/your-username/youtube-scraper-api)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/your-username/tiktok-scraper-api)
 
 ---
 
@@ -411,7 +323,7 @@ Click the banner below to fork and deploy directly to your Cloudflare account in
 1. Log into your [Cloudflare Dashboard](https://dash.cloudflare.com/).
 2. Navigate to **Compute (Workers) -> Workers & Pages**.
 3. Click **Create Application** -> **Create Worker**.
-4. Choose a name (e.g., `youtube-scraper-api`) and click **Deploy**.
+4. Choose a name (e.g., `tiktok-scraper-api`) and click **Deploy**.
 5. Once created, click **Edit code** in the top-right corner.
 6. Paste the entire contents of [`src/index.js`](./src/index.js) into the code editor.
 7. Click **Deploy**. Your API is live worldwide instantly!
@@ -424,8 +336,8 @@ Ensure you have [Node.js](https://nodejs.org/) installed, then run:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/youtube-scraper-api.git
-cd youtube-scraper-api
+git clone https://github.com/your-username/tiktok-scraper-api.git
+cd tiktok-scraper-api
 
 # Install Wrangler globally or locally
 npm install -g wrangler
@@ -439,12 +351,57 @@ wrangler deploy
 
 ---
 
+## 💻 Client Integration Examples
+
+### cURL
+
+```bash
+# Scrape TikTok video
+curl -s "https://your-worker.workers.dev/api/scrape?url=https://vt.tiktok.com/ZS2xyz123/" | jq .
+```
+
+### JavaScript / TypeScript
+
+```javascript
+async function getTikTokData(videoUrl) {
+  const endpoint = `https://your-worker.workers.dev/api/scrape?url=${encodeURIComponent(videoUrl)}`;
+  const res = await fetch(endpoint);
+  const data = await res.json();
+  
+  if (data.status === "success") {
+    console.log("Title:", data.data.title);
+    console.log("HD Video Download:", data.data.media.video.download_url);
+    console.log("Audio Download:", data.data.media.music.download_url);
+  }
+}
+```
+
+### Python
+
+```python
+import requests
+
+def scrape_tiktok(url: str):
+    api_url = "https://your-worker.workers.dev/api/scrape"
+    response = requests.get(api_url, params={"url": url})
+    data = response.json()
+    
+    if data.get("status") == "success":
+        video = data["data"]["media"]["video"]
+        print(f"Title: {data['data']['title']}")
+        print(f"Direct HD Video: {video['download_url']}")
+        return data["data"]
+    return None
+```
+
+---
+
 ## ⚙ Configuration (`wrangler.toml`)
 
 Your `wrangler.toml` file should look like this:
 
 ```toml
-name = "youtube-scraper-api"
+name = "tiktok-scraper-api"
 main = "src/index.js"
 compatibility_date = "2024-03-20"
 ```
@@ -455,4 +412,4 @@ compatibility_date = "2024-03-20"
 
 This project is licensed under the MIT License.
 
-*Disclaimer: This project is intended for educational, testing, and personal backup purposes. Please respect YouTube's Terms of Service and content creators' intellectual property rights.*
+*Disclaimer: This project is intended for educational, testing, and personal backup purposes. Please respect TikTok's Terms of Service and content creators' intellectual property rights.*
