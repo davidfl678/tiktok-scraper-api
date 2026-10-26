@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/YouTube.svg" width="96" height="96" alt="YouTube Logo" />
+  <img src="https://www.gstatic.com/youtube/img/promos/growth/YTP_logo_social_1200x630.png?days_since_epoch=20752" width="320" alt="YouTube Logo" />
 </p>
 
 <h1 align="center">🎬 YouTube Scraper & Downloader API</h1>
