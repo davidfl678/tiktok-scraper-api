@@ -1,0 +1,60 @@
+TikTok Grabber — Cloudflare Worker
+==================================
+
+WHY DID CLOUDFLARE DROP REJECT THIS ZIP?
+----------------------------------------
+"This uploader does not yet support projects that require a build process.
+ It looks like you're trying to upload a project with a wrangler config file."
+
+Two reasons:
+  1. The zip contains wrangler.jsonc  → Drop refuses config files.
+  2. Even without it, Drop / Pages only serve STATIC files (HTML/CSS/JS).
+     This project runs SERVER-SIDE code (it fetches TikTok and streams video),
+     so a static host cannot run it. Deleting the config will upload fine
+     but nothing will work.
+
+Use ONE of the three methods below instead.
+
+────────────────────────────────────────────────────────────
+METHOD 1 — Dashboard paste   (30 seconds, nothing to install)  ⭐ EASIEST
+────────────────────────────────────────────────────────────
+1. Open src/index.js  (or the single file tiktok-grabber.js)
+2. Select ALL  (Ctrl+A / Cmd+A)  → copy
+3. https://dash.cloudflare.com  →  Workers & Pages
+4. Create  →  "Start with Hello World!"  →  Deploy
+5. "Edit code"  →  delete the sample code  →  paste  →  Deploy
+
+   → https://<name>.<you>.workers.dev
+
+────────────────────────────────────────────────────────────
+METHOD 2 — GitHub + "Deploy to Cloudflare" button   (real one-click)
+────────────────────────────────────────────────────────────
+1. github.com/new  →  name it tiktok-grabber  →  Public  →  Create
+2. "uploading an existing file"  →  drag these in:
+        src/index.js
+        wrangler.jsonc
+        package.json
+        README.md
+   (do NOT upload a zip — GitHub wants the files themselves)
+3. Copy this URL, replacing USER and REPO:
+        https://deploy.workers.cloudflare.com/?url=https://github.com/USER/REPO
+4. Open it → connect Cloudflare (no card) → Deploy
+
+   Every future edit = push to GitHub = auto redeploy.
+
+────────────────────────────────────────────────────────────
+METHOD 3 — wrangler CLI
+────────────────────────────────────────────────────────────
+   unzip tiktok-grabber.zip && cd tiktok-grabber
+   npx wrangler login
+   npx wrangler deploy
+
+────────────────────────────────────────────────────────────
+FILES
+────────────────────────────────────────────────────────────
+   src/index.js     the whole Worker (UI + API + streaming)
+   wrangler.jsonc   name / compatibility_date
+   package.json     dev: wrangler dev · deploy: wrangler deploy
+
+Free plan: 100,000 requests/day · 10 ms CPU/request (measured 1.58 ms)
+No storage, no sleep, no credit card.
