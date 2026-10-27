@@ -4,10 +4,6 @@
   </a>
 </p>
 
-<p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg" width="160" alt="TikTok Logo" />
-</p>
-
 <h1 align="center">🎵 TikTok Scraper & Media Downloader API</h1>
 
 <p align="center">
